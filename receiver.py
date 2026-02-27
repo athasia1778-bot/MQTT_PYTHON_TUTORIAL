@@ -1,9 +1,45 @@
+import os
+import json
 import paho.mqtt.client as mqtt
 import time
 
-BROKER_ADDRESS = "test.mosquitto.org"
-BROKER_PORT = 1883
-TOPIC = "test/topic"
+
+def load_config():
+    cfg = {
+        "BROKER_ADDRESS": "test.mosquitto.org",
+        "BROKER_PORT": 1883,
+        "TOPIC": "test/topic",
+    }
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+    except Exception:
+        pass
+
+    try:
+        if os.path.exists("config.json"):
+            with open("config.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                cfg.update({k: v for k, v in data.items() if v is not None})
+    except Exception as e:
+        print(f"[RECEIVER] Failed to read config.json: {e}")
+
+    cfg["BROKER_ADDRESS"] = os.getenv("MQTT_BROKER", cfg["BROKER_ADDRESS"])
+    try:
+        cfg["BROKER_PORT"] = int(os.getenv("MQTT_PORT", cfg["BROKER_PORT"]))
+    except Exception:
+        cfg["BROKER_PORT"] = cfg["BROKER_PORT"]
+    cfg["TOPIC"] = os.getenv("MQTT_TOPIC", cfg["TOPIC"])
+
+    return cfg
+
+
+_CFG = load_config()
+BROKER_ADDRESS = _CFG["BROKER_ADDRESS"]
+BROKER_PORT = _CFG["BROKER_PORT"]
+TOPIC = _CFG["TOPIC"]
 
 new_message = False
 

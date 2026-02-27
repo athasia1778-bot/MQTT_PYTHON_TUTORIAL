@@ -1,4 +1,4 @@
 @echo off
-"C:\Users\Hsinju\my_python_project\.venv\Scripts\python.exe" "%~dp0\receiver.py"
+"C:\Users\Hsinju\Desktop\VincentWork\MQTT_PYTHON_TUTORIAL\.venv\Scripts\python.exe" "%~dp0\receiver.py"
 echo.
 pause

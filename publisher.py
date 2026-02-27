@@ -1,14 +1,57 @@
+import os
+import json
 import paho.mqtt.client as mqtt
 import threading
 import time
 import sys
 
-BROKER_ADDRESS = "test.mosquitto.org"
-BROKER_PORT = 1883
-TOPIC = "test/topic"
 
-# interval for automatic messages (seconds)
-AUTO_INTERVAL = 5
+def load_config():
+    # defaults
+    cfg = {
+        "BROKER_ADDRESS": "test.mosquitto.org",
+        "BROKER_PORT": 1883,
+        "TOPIC": "test/topic",
+        "AUTO_INTERVAL": 5,
+    }
+    # load .env if available
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+    except Exception:
+        pass
+
+    # load config.json if present
+    try:
+        if os.path.exists("config.json"):
+            with open("config.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                cfg.update({k: v for k, v in data.items() if v is not None})
+    except Exception as e:
+        print(f"[PUBLISHER] Failed to read config.json: {e}")
+
+    # environment variable overrides (MQTT_BROKER, MQTT_PORT, MQTT_TOPIC)
+    cfg["BROKER_ADDRESS"] = os.getenv("MQTT_BROKER", cfg["BROKER_ADDRESS"])
+    try:
+        cfg["BROKER_PORT"] = int(os.getenv("MQTT_PORT", cfg["BROKER_PORT"]))
+    except Exception:
+        cfg["BROKER_PORT"] = cfg["BROKER_PORT"]
+    cfg["TOPIC"] = os.getenv("MQTT_TOPIC", cfg["TOPIC"])
+    try:
+        cfg["AUTO_INTERVAL"] = int(os.getenv("MQTT_AUTO_INTERVAL", cfg["AUTO_INTERVAL"]))
+    except Exception:
+        cfg["AUTO_INTERVAL"] = cfg["AUTO_INTERVAL"]
+
+    return cfg
+
+
+_CFG = load_config()
+BROKER_ADDRESS = _CFG["BROKER_ADDRESS"]
+BROKER_PORT = _CFG["BROKER_PORT"]
+TOPIC = _CFG["TOPIC"]
+AUTO_INTERVAL = _CFG["AUTO_INTERVAL"]
 
 client = None
 stop_event = threading.Event()

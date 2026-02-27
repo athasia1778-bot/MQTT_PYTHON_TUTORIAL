@@ -5,130 +5,141 @@
 ## 項目描述
 
 本項目包含一個完整的 MQTT 應用示例，包括：
-- **發佈者（Publisher）**：自動連接到 MQTT 代理並定期發送消息
-- **訂閱者（Receiver）**：連接到代理並接收發佈者發送的消息
-- **啟動器（Launcher）**：在獨立窗口中同時運行發佈者和訂閱者
+# MQTT Python 教程
 
-## 文件結構
+此儲存庫包含一個以 Python 撰寫的簡明 MQTT 教學範例，示範如何使用 `paho-mqtt` 實作發佈/訂閱模式，並提供可在本機或 Docker 中運行的範例。
 
-```
-.
-├── main.py              # 啟動器 - 打開發佈者和接收者的獨立窗口
-├── publisher.py         # MQTT 發佈者 - 自動發送消息
-├── receiver.py          # MQTT 接收者 - 接收消息
-├── run_publisher.bat    # Windows 發佈者運行腳本
-├── run_receiver.bat     # Windows 接收者運行腳本
-└── README.md           # 本文件
-```
+## 專案內容
 
-## 系統需求
+- main.py — 可同時啟動 publisher 與 receiver 的啟動程式
+- publisher.py — 範例發佈者，週期性傳送訊息
+- receiver.py — 範例訂閱者，列印接收到的訊息
+- run_publisher.bat / run_receiver.bat — Windows 快捷執行檔
+- requirements.txt — 範例所需套件
 
-- Python 3.7 或更高版本
-- paho-mqtt 庫
+## 先決條件
 
-## 安裝
+- Python 3.8 或以上
+- Git（非必需）
+- Docker 與 docker-compose（選用，用於本機 Mosquitto broker）
 
-1. 克隆或下載此項目
+## 快速上手（建議）
 
-2. 安裝依賴包：
-```bash
-pip install paho-mqtt
+1. 建立並啟動虛擬環境：
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
 ```
 
-## 使用方法
+2. 安裝相依套件：
 
-### 方法一：使用啟動器（推薦）
-
-在項目根目錄運行：
-```bash
-python main.py
+```powershell
+pip install -r requirements.txt
 ```
 
-這將自動打開兩個新窗口：
-- 一個運行接收者
-- 一個運行發佈者
+3. 在一個終端啟動接收者，另一個終端啟動發佈者：
 
-### 方法二：分別運行
-
-**運行接收者：**
-```bash
+```powershell
 python receiver.py
-```
-
-**在另一個終端運行發佈者：**
-```bash
 python publisher.py
 ```
 
-### 方法三：Windows 批處理文件
+發佈者會將訊息送到 MQTT broker，接收者會即時列印接收到的訊息。
 
-直接雙擊運行：
-- `run_publisher.bat` - 運行發佈者
-- `run_receiver.bat` - 運行接收者
+## 設定（修改 broker/port/topic）
 
-## 配置
+可透過下列方式修改設定：
 
-默認配置使用公開的 Mosquitto 測試代理。可在代碼中修改以下參數：
+- 編輯 config.json（建議）、或
+- 設定環境變數： MQTT_BROKER / MQTT_PORT / MQTT_TOPIC / MQTT_AUTO_INTERVAL
 
-```python
-BROKER_ADDRESS = "test.mosquitto.org"  # MQTT 代理地址
-BROKER_PORT = 1883                      # MQTT 代理端口
-TOPIC = "test/topic"                    # 發佈/訂閱主題
-AUTO_INTERVAL = 5                       # 自動發送間隔（秒）
+範例（config.json 或程式頂部預設）：
+
+```json
+{
+	"BROKER_ADDRESS": "test.mosquitto.org",
+	"BROKER_PORT": 1883,
+	"TOPIC": "test/topic",
+	"AUTO_INTERVAL": 5
+}
 ```
 
-## 工作原理
+或以環境變數覆蓋：
 
-### 發佈者流程
-1. 連接到 MQTT 代理
-2. 啟動自動發送線程
-3. 每 5 秒發送一條消息
-4. 支持手動發送消息（可擴展功能）
+```powershell
+$env:MQTT_BROKER = "localhost"
+$env:MQTT_PORT = "1883"
+$env:MQTT_TOPIC = "my/topic"
+```
 
-### 接收者流程
-1. 連接到 MQTT 代理
-2. 訂閱指定的主題
-3. 等待並顯示接收到的消息
-4. 每秒更新一次狀態
+## 使用 Docker 在本機啟動 Mosquitto（選用）
 
-## 代碼特點
+建立一個 docker-compose.yml（下方為簡單範例），用以同時啟動 Mosquitto broker：
 
-- ✅ 線程安全的消息處理
-- ✅ 跨平台支持（Windows、Linux、macOS）
-- ✅ 完善的錯誤處理
-- ✅ 清晰的日誌輸出
+```yaml
+version: '3'
+services:
+	mosquitto:
+		image: eclipse-mosquitto:2.0
+		ports:
+			- "1883:1883"
+		volumes:
+			- ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+```
 
-## 故障排除
+啟動 broker：
 
-**問題：無法連接到代理**
-- 確保網絡連接正常
-- 檢查代理地址和端口是否正確
-- 嘗試使用不同的 MQTT 代理
+```powershell
+docker-compose up -d
+```
 
-**問題：收不到消息**
-- 確保發佈者和接收者訂閱的主題相同
-- 檢查發佈者是否成功連接
-- 查看控制台的錯誤消息
+將設定中的 BROKER_ADDRESS 改為 localhost，然後執行 Python 腳本。
 
-## 擴展功能建議
+## 測試
 
-- 添加用戶界面（GUI）
-- 實現消息加密
-- 添加數據庫存儲接收的消息
-- 支持多個主題
-- 實現自定義消息格式
+建議使用 pytest 建置簡單的整合測試流程：啟動測試 broker、由 publisher 發送測試訊息，並由 receiver 驗證是否接收。執行測試：
 
-## 許可證
+```powershell
+pytest -q
+```
 
-此項目僅供學習使用。
+## 疑難排解
 
-## 參考資源
+- 若發佈者無法連線：請確認 BROKER_ADDRESS、BROKER_PORT 以及網路連線狀態。
+- 若無法接收訊息：請確認發佈者與接收者使用相同 TOPIC、QoS 設定正確。
+- 需要詳細日誌：可在程式中啟用 logging 或直接於終端觀察輸出。
 
-- [MQTT 官方文檔](https://mqtt.org/)
-- [Eclipse Paho Python 客戶端](https://eclipse.org/paho/clients/python/)
-- [Mosquitto 測試代理](https://test.mosquitto.org/)
+## 後續建議
+
+- 新增 .env 或 config.example.json 並將程式改為讀取配置檔（已提供範例）。
+- 提供 docker-compose.yml 與 mosquitto.conf 以重現本機環境。
+- 建立 pytest 測試以及 GitHub Actions 工作流程以執行 CI。
+- 增加簡短的 Jupyter Notebook，說明本範例中使用的 MQTT 概念。
+
+## 貢獻
+
+歡迎提出改進或 PR，請先建立 issue 討論主要變更。
 
 ---
 
-**作者**: Python MQTT 教程  
-**建立日期**: 2026 年 2 月
+檔案： [README.md](README.md)
+
+建立： 2026-02
+## Next steps / suggested improvements
+
+- Add a `.env` / `config.example.json` for configuration
+- Provide a `docker-compose.yml` and `mosquitto.conf` for a reproducible local environment
+- Add `pytest` integration tests and GitHub Actions workflow
+- Add a short Jupyter Notebook explaining MQTT concepts used in the demo
+
+## Contributing
+
+Contributions and improvements are welcome — please open an issue or PR.
+
+---
+
+File: [README.md](README.md)
+
+Created: 2026-02
+---
